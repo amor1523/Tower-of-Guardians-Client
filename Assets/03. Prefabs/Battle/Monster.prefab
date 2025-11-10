@@ -150,6 +150,7 @@ MonoBehaviour:
   currentHealth: 0
   hasDefense: 0
   defaultAttackValue: 5
+  attackAnchor: {fileID: 1158091095933760972}
   attackText: {fileID: 9054910505145391813}
   hpSlider: {fileID: 8096385002698865753}
   hpText: {fileID: 2668482592201094179}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -15,6 +16,7 @@ public class MonsterUnit : MonoBehaviour, IDamageable, IPointerClickHandler
     [SerializeField] private int defaultAttackValue = 0;
 
     [Header("Status UI")]
+    [SerializeField] private Transform attackAnchor;
     [SerializeField] private TMP_Text attackText;
     [SerializeField] private Slider hpSlider;
     [SerializeField] private TMP_Text hpText;
@@ -30,12 +32,36 @@ public class MonsterUnit : MonoBehaviour, IDamageable, IPointerClickHandler
     public bool IsAlive => currentHealth > 0;
     public bool HasDefense => hasDefense;
     public event Action<MonsterUnit> Clicked;
+    private BattleManager battleManager;
+    private Coroutine registrationRoutine;
 
     private void Awake()
     {
         InitializeData();
         ClampHealth(forceMaxIfZero: true);
         RefreshUI();
+        SetTargeted(false);
+        RegisterBattleManager();
+    }
+
+    private void OnEnable()
+    {
+        RegisterBattleManager();
+    }
+
+    private void OnDisable()
+    {
+        if (battleManager != null)
+        {
+            battleManager.UnregisterMonster(this);
+            battleManager = null;
+        }
+
+        if (registrationRoutine != null)
+        {
+            StopCoroutine(registrationRoutine);
+            registrationRoutine = null;
+        }
     }
 
     public void SetCurrentHealth(int value)
@@ -72,6 +98,8 @@ public class MonsterUnit : MonoBehaviour, IDamageable, IPointerClickHandler
             targetIndicator.SetActive(isTargeted);
         }
     }
+
+    public Transform AttackAnchor => attackAnchor != null ? attackAnchor : transform;
 
     public int GetAttackValue()
     {
@@ -113,12 +141,52 @@ public class MonsterUnit : MonoBehaviour, IDamageable, IPointerClickHandler
         Clicked?.Invoke(this);
     }
 
+    private void OnMouseDown()
+    {
+        if (!IsAlive)
+        {
+            return;
+        }
+
+        Clicked?.Invoke(this);
+    }
+
     private void InitializeData()
     {
         if (data == null)
         {
             data = new MonsterData();
         }
+    }
+
+    private void RegisterBattleManager()
+    {
+        if (battleManager != null || registrationRoutine != null)
+        {
+            return;
+        }
+
+        if (DIContainer.IsRegistered<BattleManager>())
+        {
+            battleManager = DIContainer.Resolve<BattleManager>();
+            battleManager.RegisterMonster(this);
+        }
+        else
+        {
+            registrationRoutine = StartCoroutine(WaitForBattleManager());
+        }
+    }
+
+    private IEnumerator WaitForBattleManager()
+    {
+        while (!DIContainer.IsRegistered<BattleManager>())
+        {
+            yield return null;
+        }
+
+        registrationRoutine = null;
+        battleManager = DIContainer.Resolve<BattleManager>();
+        battleManager.RegisterMonster(this);
     }
 
     private void ClampHealth(bool forceMaxIfZero = false)

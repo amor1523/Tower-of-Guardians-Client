@@ -22,7 +22,7 @@ public class PlayerUnit : MonoBehaviour, IDamageable
 
     [Header("Sprite")]
     [SerializeField] private Transform spriteTransform;
-    [SerializeField] private float singleTargetAttackOffset = 0.5f;
+    [SerializeField] private float singleTargetAttackOffset = 1.0f;
     [SerializeField] private float returnDelay = 0.1f;
 
     private Vector3 initialSpriteLocalPosition;
@@ -63,16 +63,32 @@ public class PlayerUnit : MonoBehaviour, IDamageable
         RefreshUI();
     }
 
-    public IEnumerator PerformAttack(IEnumerable<IDamageable> targets, bool isAreaAttack = false)
+    public IEnumerator PerformAttack(IEnumerable<IDamageable> targets, bool isAreaAttack = false, Vector3? primaryTargetWorldPosition = null)
     {
         InitializeStats();
         CacheSpriteOrigin();
 
         if (spriteTransform != null)
         {
-            Vector3 attackPosition = isAreaAttack
-                ? new Vector3(0f, initialSpriteLocalPosition.y, initialSpriteLocalPosition.z)
-                : initialSpriteLocalPosition + new Vector3(-Mathf.Abs(singleTargetAttackOffset), 0f, 0f);
+            Vector3 attackPosition = initialSpriteLocalPosition;
+
+            if (isAreaAttack)
+            {
+                attackPosition.x = 0f;
+            }
+            else if (primaryTargetWorldPosition.HasValue)
+            {
+                Transform parent = spriteTransform.parent;
+                Vector3 targetLocal = parent != null
+                    ? parent.InverseTransformPoint(primaryTargetWorldPosition.Value)
+                    : primaryTargetWorldPosition.Value;
+
+                attackPosition.x = targetLocal.x - Mathf.Abs(singleTargetAttackOffset);
+            }
+            else
+            {
+                attackPosition.x = initialSpriteLocalPosition.x - Mathf.Abs(singleTargetAttackOffset);
+            }
 
             spriteTransform.localPosition = attackPosition;
         }
