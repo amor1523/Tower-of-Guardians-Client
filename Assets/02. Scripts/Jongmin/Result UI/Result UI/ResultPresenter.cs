@@ -1,10 +1,14 @@
 public class ResultPresenter
 {
     private readonly IResultView m_view;
+    private readonly RewardPresenter m_reward_presenter;
 
-    public ResultPresenter(IResultView view)
+    public ResultPresenter(IResultView view,
+                           RewardPresenter reward_presenter)
     {
         m_view = view;
+        m_reward_presenter = reward_presenter;
+
         m_view.Inject(this);
     }
 
@@ -14,14 +18,16 @@ public class ResultPresenter
 
         if(result_data.Type == BattleResultType.Victory)
         {
-            // TODO: 전투 보상, 전투 상점 활성화
+            m_reward_presenter.OpenUI(result_data.Gold, 
+                                      result_data.EXP);
+            // TODO: 전투 상점 활성화
         }
     }
 
     public void CloseUI()
     {
         m_view.CloseUI();
-
-        // TODO: 전투 보상, 전투 상점 비활성화화
+        m_reward_presenter.CloseUI();
+        // TODO: 전투 상점 비활성화
     }
 }
